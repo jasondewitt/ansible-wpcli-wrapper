@@ -1,0 +1,22 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: wpcli-wrapper
+  tasks:
+    - name: install php-cli
+      yum:
+        name: php-cli
+        state: installed
+        enablerepo: remi-php72
+    - name: ensure path exists for WordPress
+      file:
+        path: "{{ wordpress_path }}"
+        state: directory
+        mode: 0775
+        owner: root
+        group: root
+    - name: download wordpress
+      wpcli:
+        path: "{{ wordpress_path }}"
+        action: download

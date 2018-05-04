@@ -1,0 +1,5 @@
+---
+- src: mychiara.wp-cli
+- src: geerlingguy.repo-epel
+- src: geerlingguy.repo-remi
+- src: geerlingguy.php
