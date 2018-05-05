@@ -2,15 +2,8 @@
 - name: Converge
   hosts: all
   roles:
-    - role: geerlingguy.repo-epel
-    - role: geerlingguy.repo-remi
     - role: wpcli-wrapper
   tasks:
-    - name: install php-cli
-      yum:
-        name: php-cli
-        state: installed
-        enablerepo: remi-php72
     - name: ensure path exists for WordPress
       file:
         path: "{{ wordpress_path }}"

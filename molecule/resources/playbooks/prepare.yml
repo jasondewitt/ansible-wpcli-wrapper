@@ -1,0 +1,13 @@
+---
+- name: Prepare
+  hosts: all
+  roles:
+    - role: geerlingguy.repo-epel
+    - role: geerlingguy.repo-remi
+  gather_facts: true
+  tasks:
+    - name: install php-cli
+      yum:
+        name: php-cli
+        state: installed
+        enablerepo: remi-php72

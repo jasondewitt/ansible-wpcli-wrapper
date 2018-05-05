@@ -10,9 +10,12 @@ platforms:
     image: centos:7
 provisioner:
   name: ansible
+  playbooks:
+    prepare: ../resources/playbooks/prepare.yml
   inventory:
     group_vars:
       all:
+        scenario: default
         php_enablerepo: "remi-php72"
         php_enable_php_fpm: false
         php_enable_webserver: false
