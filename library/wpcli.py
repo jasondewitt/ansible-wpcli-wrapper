@@ -34,6 +34,8 @@ EXAMPLES = '''
 '''
 
 from ansible.module_utils.basic import AnsibleModule
+import os
+import httplib
 
 class wpcli_command(object):
 
@@ -42,6 +44,17 @@ class wpcli_command(object):
         self.module = module
         self.path = module.params["path"]
         self.action = module.params["action"]
+        self.version = module.params["version"]
+        self.force = module.params["force"]
+
+        self.result = {}
+
+    def verify_wp_version(self):
+        
+        r = requests.get("https://api.wordpress.org/core/stable-check/1.0/")
+        versions = json.loads(r.text)
+        if not versions.has_key(self.version):
+            self.module.fail_json(fail=True, msg="%s is not a valid WordPress version" % self.version)
 
 
     def execute_command(self, cmd, use_unsafe_shell=False, data=None, obey_checkmode=True):
@@ -53,22 +66,59 @@ class wpcli_command(object):
             cmd = [str(x) for x in cmd]
             return self.module.run_command(cmd, use_unsafe_shell=use_unsafe_shell, data=data)
 
-    def run_action(self):
-        
+    def prep_command(self):
         cmd = [ self.module.get_bin_path('wp', True) ]
-        ## TODO: detect if running as root or not and append this as necessary
-        cmd.append('--allow-root')
+        if os.geteuid()==0:
+            cmd.append('--allow-root')
         # always going to want --path on the command, so go ahead and append it now
         cmd.append( '--path=%s' % self.path )
+        if self.version:
+            cmd.append( '--version=%s' % self.version )
+        if self.force:
+            cmd.append( '--force' )
 
-        if self.action == "download":
-            cmd.append( 'core' )
-            cmd.append( 'download' )
+        return cmd
 
-        ## does this go here?
-        if self.module.check_mode:
-            self.module.exit_json(changed=True)
-        return self.execute_command(cmd)
+
+    def core_download(self):
+        # download WordPress core
+
+        rc = None
+        out = ''
+        err = ''
+
+        if not os.path.exists( "%s/wp-load.php" % self.path ):
+            ## TODO: check if current version matches version parameter
+            if self.module.check_mode:
+                self.module.exit_json(changed=True)
+            cmd = self.prep_command()
+            cmd.extend( "core download".split() )
+
+            (rc, out, err) = self.execute_command(cmd)
+
+            vc_cmd = self.prep_command()
+            self.verify_checksums()
+
+            return (rc, out, err)
+        else:
+            if self.module.check_mode:
+                self.module.exit_json(changed=False)
+            return (None, "WordPress present", "WordPress already downloaded here")
+
+
+    def verify_checksums(self):
+
+        rc = None
+        out = ''
+        err = ''
+
+        cmd = self.prep_command()
+        cmd.extend( "core verify-checksums".split() )
+
+        (rc, out, err) = self.execute_command(cmd)
+        ## checksums did not verify, something went wrong, dump out
+        if rc != 0:
+            self.module.fail_json(fail=True, msg=err)
 
 
 def main():
@@ -76,7 +126,15 @@ def main():
     module = AnsibleModule(
         argument_spec = dict(
             path=dict(type='str',  required=True),
-            action = dict(type='str', required=True, choices=["download", "install", "plugin" ]),
+            action = dict(type='str', required=True, choices=[
+                "download",
+                "install",
+                "plugin",
+                "upgrade",
+                "verify"
+            ]),
+            version=dict(type="str", required=False, default=None),
+            force=dict(type="bool", required=False, default=False),
         ),
         supports_check_mode=True
     )
@@ -88,18 +146,25 @@ def main():
     err = ''
     result = {}
 
-    (rc, out, err) = wp.run_action()
+    ## distpach action to proper func 
+    dispatch = {
+        "download": wp.core_download,
+        "verify": wp.verify_checksums,
+    }
+
+
+    (rc, out, err) = dispatch[wp.action]()
 
     if rc is None:
-        result['changed'] = False
+        wp.result['changed'] = False
     else:
-        result['changed'] = True
+        wp.result['changed'] = True
     if out:
-        result['stdout'] = out
+        wp.result['stdout'] = out
     if err:
-        result['stderr'] = err
+        wp.result['stderr'] = err
 
-    module.exit_json(**result)
+    module.exit_json(**wp.result)
 
 
 # import module snippets

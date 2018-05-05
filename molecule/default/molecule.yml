@@ -19,6 +19,7 @@ provisioner:
         php_packages:
           - php-cli
         wordpress_path: /var/www/wordpress
+        wordpress_version: 4.9.4
   lint:
     name: ansible-lint
 scenario:

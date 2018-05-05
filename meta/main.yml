@@ -54,7 +54,7 @@ galaxy_info:
   #       Maximum 20 tags per role.
 
 dependencies:
-#  - { role: mychiara.wp-cli }
+  - { role: mychiara.wp-cli }
 #  - { role: geerlingguy.repo-epel }
 #  - { role: geerlingguy.repo-remi }
 #  - { role: geerlingguy.php }

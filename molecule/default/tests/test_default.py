@@ -27,6 +27,14 @@ def test_download_wordpress(host):
     assert wpdir.exists
     assert wpdir.is_directory
 
-    wpsettings = host.file("/var/www/wordpress/wp-settings.php")
+    wpload = host.file("/var/www/wordpress/wp-load.php")
 
-    assert wpsettings.exists
+    assert wpload.exists
+
+
+def test_wordpress_version(host):
+    version = host.ansible.get_variables()["wordpress_version"]
+    path = host.ansible.get_variables()["wordpress_path"]
+
+    print version
+    print path

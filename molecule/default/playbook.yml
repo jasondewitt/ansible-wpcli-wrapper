@@ -2,6 +2,8 @@
 - name: Converge
   hosts: all
   roles:
+    - role: geerlingguy.repo-epel
+    - role: geerlingguy.repo-remi
     - role: wpcli-wrapper
   tasks:
     - name: install php-cli
@@ -20,3 +22,4 @@
       wpcli:
         path: "{{ wordpress_path }}"
         action: download
+        version: "{{ wordpress_version }}"
