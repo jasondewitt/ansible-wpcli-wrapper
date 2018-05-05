@@ -49,13 +49,6 @@ class wpcli_command(object):
 
         self.result = {}
 
-    def verify_wp_version(self):
-        
-        r = requests.get("https://api.wordpress.org/core/stable-check/1.0/")
-        versions = json.loads(r.text)
-        if not versions.has_key(self.version):
-            self.module.fail_json(fail=True, msg="%s is not a valid WordPress version" % self.version)
-
 
     def execute_command(self, cmd, use_unsafe_shell=False, data=None, obey_checkmode=True):
         if self.module.check_mode and obey_checkmode:
