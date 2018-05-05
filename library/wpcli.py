@@ -35,7 +35,8 @@ EXAMPLES = '''
 
 from ansible.module_utils.basic import AnsibleModule
 import os
-import httplib
+import json
+
 
 class wpcli_command(object):
 
@@ -45,7 +46,9 @@ class wpcli_command(object):
         self.path = module.params["path"]
         self.action = module.params["action"]
         self.version = module.params["version"]
+        self.minor = module.params["minor"]
         self.force = module.params["force"]
+        self.network = module.params["network"]
 
         self.result = {}
 
@@ -69,6 +72,8 @@ class wpcli_command(object):
             cmd.append( '--version=%s' % self.version )
         if self.force:
             cmd.append( '--force' )
+        if self.network:
+            cmd.append( '--network' )
 
         return cmd
 
@@ -99,6 +104,28 @@ class wpcli_command(object):
             return (None, "WordPress present", "WordPress already downloaded here")
 
 
+    def core_update(self):
+        
+        cmd = self.prep_command()
+
+        cmd.extend( 'core update'.split() )
+        if self.minor:
+            cmd.append( '--minor' )
+        
+        (rc, out, err) = self.execute_command(cmd)
+        self.result['changed'] = out
+        if "WordPress updated successfully" in out:
+            self.result['changed'] = True
+        elif "WordPress is up to date" in out:
+            self.result['changed'] = False
+        else:
+            self.result['stderr'] = err
+            self.result['msg'] = "WordPress update critically failed, is this path a WordPress install?"
+            self.module.fail_json(**self.result)
+        
+        self.module.exit_json(**self.result)
+
+
     def verify_checksums(self):
 
         rc = None
@@ -123,14 +150,21 @@ def main():
                 "download",
                 "install",
                 "plugin",
-                "upgrade",
+                "update",
                 "verify"
             ]),
             version=dict(type="str", required=False, default=None),
             force=dict(type="bool", required=False, default=False),
+            network=dict(type="bool", required=False, default=False),
+            minor=dict(type="bool", required=False, default=False),
         ),
+        mutually_exclusive=[
+            [ 'version', 'minor' ]
+        ],
         supports_check_mode=True
     )
+
+
 
     wp = wpcli_command(module)
 
@@ -143,8 +177,12 @@ def main():
     dispatch = {
         "download": wp.core_download,
         "verify": wp.verify_checksums,
+        "update": wp.core_update,
+
     }
 
+    if wp.minor and wp.action != "update":
+        module.fail_json(fail=True, msg="Only use \"Minor: True\" on Update action")
 
     (rc, out, err) = dispatch[wp.action]()
 
