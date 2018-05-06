@@ -21,7 +21,7 @@
     - name: start mysql
       service:
         name: mariadb
-        state: running
+        state: started
     - name: create mysql database
       mysql_db:
         name: "{{ wordpress_dbname }}"

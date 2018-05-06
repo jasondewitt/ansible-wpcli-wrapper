@@ -33,6 +33,20 @@ EXAMPLES = '''
 
 '''
 
+'''
+TODO: support most wp core commands from https://developer.wordpress.org/cli/commands/core/
+check-update - return true or false, allow for registering variable to determine if an update task in playbook runs
+download - pretty much done, maybe more tests
+install - combine with multisite-install based off params passed
+is-installed - could be nice to pass true/false back to ansible for playbook stuffs
+mulsite-convert - ??
+multisite-install - combine with install
+update - needs tests
+update-db - yes
+verify-checksums - needs tests
+version - function is written in base class, needs refactor to use as both an ansible action and for version checking in other functions
+'''
+
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.wpcli import *
 
@@ -52,67 +66,117 @@ class wpcli_core(wpcli_command):
         self.result = {}
 
 
+    def do_action(self):
+        
+        ## distpach action to proper func 
+        dispatch = {
+            "download": self.core_download,
+            "verify": self.verify_checksums,
+            "update": self.core_update,
+
+        }
+
+        dispatch[self.action]()
+
+
     def core_download(self):
         # download WordPress core
-
-        rc = None
-        out = ''
-        err = ''
-
         if not os.path.exists( "%s/wp-load.php" % self.path ):
-            ## TODO: check if current version matches version parameter
             if self.module.check_mode:
                 self.module.exit_json(changed=True)
+
             cmd = self.prep_command()
             cmd.extend( "core download".split() )
 
+            if self.version:
+                cmd.append("--version=%s" % self.version)
+
             (rc, out, err) = self.execute_command(cmd)
 
-            vc_cmd = self.prep_command()
-            self.verify_checksums()
-
-            return (rc, out, err)
+            if rc != 0 or "Error" in out:
+                self.result["stderr"] = err
+                self.result["msg"] = "WordPress download failed"
+                self.result["command"] = cmd
+                self.module.fail_json(**self.result)
+            elif "WordPress downloaded" in out:
+                self.result["stdout"] = out
+                self.result["changed"] = True
+                self.module.exit_json(**self.result)
         else:
             if self.module.check_mode:
-                self.module.fail_json(changed=False, msg=err)
-            return (None, "WordPress present", "WordPress already downloaded here")
+                self.module.exit_json(changed=False)
+            self.result["stdout"] = "Wordpress already exists in %s" % self.path
+            self.result["changed"] = False
+            self.module.exit_json(**self.result)
 
 
     def core_update(self):
         
-        cmd = self.prep_command()
+        current_version = self.get_wp_version()
+        latest = self.find_wp_latest()
 
-        cmd.extend( 'core update'.split() )
-        if self.minor:
-            cmd.append( '--minor' )
-        
-        (rc, out, err) = self.execute_command(cmd)
-        self.result['changed'] = out
-        if "WordPress updated successfully" in out:
-            self.result['changed'] = True
-        elif "WordPress is up to date" in out:
-            self.result['changed'] = False
+        if current_version == latest or current_version == self.version:
+            self.result["changed"] = False
+            self.result["msg"] = "WordPress at %s is already at version %s" % (self.path, self.version)
+            self.module.exit_json(**self.result)
+
         else:
-            self.result['stderr'] = err
-            self.result['msg'] = "WordPress update critically failed, is this path a WordPress install?"
-            self.module.fail_json(**self.result)
-        
-        self.module.exit_json(**self.result)
+            # do upgrade
+            if self.module.check_mode:
+                self.result["changed"] = True
+                self.module.exit_json(**self.result)
+                    
+            cmd = self.prep_command()
+
+            cmd.extend( 'core update'.split() )
+            if self.minor:
+                ## support --minor flag or not? Maybe always specify specific version string...
+                cmd.append( '--minor' )
+            
+            (rc, out, err) = self.execute_command(cmd)
+
+            if rc == 0 and "WordPress is up to date" in out:
+                # WordPress was already at this version
+                self.result["changed"] = False
+                self.result["stdout"] = out
+                self.module.exit_json(**self.result)
+            elif rc == 0 and "WordPress updated successfully" in out:
+                self.result["changed"] = True
+                self.result["stdout"] = out
+                self.module.exit_json(**self.result)
+            else:
+                self.result['stderr'] = err
+                self.result['msg'] = "WordPress update critically failed, is this path a WordPress install?"
+                self.module.fail_json(**self.result)
 
 
     def verify_checksums(self):
-
-        rc = None
-        out = ''
-        err = ''
 
         cmd = self.prep_command()
         cmd.extend( "core verify-checksums".split() )
 
         (rc, out, err) = self.execute_command(cmd)
-        ## checksums did not verify, something went wrong, dump out
-        if rc != 0:
-            self.module.fail_json(fail=True, msg=err)
+        if rc != 0 and "doesn't verify against checksums" in out:
+            self.result["changed"] = False
+            self.result["msg"] = "WordPress install at %s doesn't verify against checksums" % self.path
+            self.result["path"] = self.path
+            self.module.exit_json(**self.result)
+        elif rc != 0:
+            self.result["changed"] = False
+            self.result["msg"] = "Error occured verifying checksums in %s" % self.path
+            self.result["stderr"] = err
+            self.module.fail_json(**self.result)
+        elif rc == 0 and "WordPress installation verifies against checksums" in out:
+            self.result["changed"] = False
+            self.result["msg"] = "Checksum verification successful"
+            self.result["stdout"] = out
+            self.module.exit_json(**self.result)
+        else:
+            # something bad happened
+            self.result["msg"] = "Critical error verifying WordPress checksums in %s" % self.path
+            self.result["stdout"] = out
+            self.result["stderr"] = err
+            self.module.fail_json(**self.result)
 
 
 def main():
@@ -123,7 +187,6 @@ def main():
             action = dict(type='str', required=True, choices=[
                 "download",
                 "install",
-                "plugin",
                 "update",
                 "verify"
             ]),
@@ -144,34 +207,10 @@ def main():
 
     wp = wpcli_core(module)
 
-    rc = None
-    out = ''
-    err = ''
-    result = {}
-
-    ## distpach action to proper func 
-    dispatch = {
-        "download": wp.core_download,
-        "verify": wp.verify_checksums,
-        "update": wp.core_update,
-
-    }
-
     if wp.minor and wp.action != "update":
         module.fail_json(fail=True, msg="Only use \"Minor: True\" on Update action")
 
-    (rc, out, err) = dispatch[wp.action]()
-
-    if rc is None:
-        wp.result['changed'] = False
-    else:
-        wp.result['changed'] = True
-    if out:
-        wp.result['stdout'] = out
-    if err:
-        wp.result['stderr'] = err
-
-    module.exit_json(**wp.result)
+    wp.do_action()
 
 
 # import module snippets
