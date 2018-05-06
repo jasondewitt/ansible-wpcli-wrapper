@@ -119,7 +119,7 @@ class wpcli_config(wpcli_command):
             self.result["command"] = cmd
             self.module.fail_json(**self.result)
         elif os.path.exists("%s/wp-config.php" % self.path):
-            self.result["out"] = "wp-config.php created sucessfully"
+            self.result["stdout"] = "wp-config.php created sucessfully"
             self.result["changed"] = True
             self.module.exit_json(**self.result)
 
