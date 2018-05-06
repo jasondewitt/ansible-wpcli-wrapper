@@ -6,7 +6,7 @@ WP-CLI is great for managing WordPress from the commandline, and it works resona
 Requirements
 ------------
 
-The module requires wp-cli and php to be installed the target host. The role includes a dependency on [mychiara.wp-cli](https://galaxy.ansible.com/mychiara/wp-cli/). I chose this role because it does not depend on a specific PHP role, I dont want this module/role to make any assumptions on how PHP is installed on the target servers, only rely on the fact that is there.
+The module requires wp-cli and php to be installed the target host. The role includes a dependency on [mychiara.wp-cli](https://galaxy.ansible.com/mychiara/wp-cli/). I chose this role because it does not depend on a specific PHP role, I dont want this module/role to make any assumptions on how PHP is installed on the target servers, only rely on the fact that is there. Some commands, such as `config` may require the mysql client be installed on the target host.
 
 Module Description
 ------------------
