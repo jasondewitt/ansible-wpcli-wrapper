@@ -30,6 +30,10 @@ EXAMPLES = '''
 - name: download WordPress to the specified path
   wpcli_config:
     path: /path/to/wordpress
+    action: create
+    dbname: wp
+    dbuser: wp
+    dbpass: password
 
 '''
 
@@ -118,9 +122,6 @@ class wpcli_config(wpcli_command):
             self.result["out"] = "wp-config.php created sucessfully"
             self.result["changed"] = True
             self.module.exit_json(**self.result)
-        
-
-
 
 
 def main():
@@ -141,15 +142,12 @@ def main():
             dbcollate=dict(type='str', required=False),
             locale=dict(type='str', required=False),
         )
-        # required_if=[
-        #     [ "action", "create", [ "dbname", "dbuser", "dbpass" ] ]
-        # ]
     )
 
     module = AnsibleModule(
         argument_spec = arg_spec,
-        mutually_exclusive=[
-            [  ]
+        required_if=[
+            [ "action", "create", [ "dbname", "dbuser", "dbpass" ] ]
         ],
         supports_check_mode=True
     )
