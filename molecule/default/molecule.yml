@@ -23,6 +23,9 @@ provisioner:
           - php-cli
         wordpress_path: /var/www/wordpress
         wordpress_version: 4.9.4
+        wordpress_dbname: wp
+        wordpress_dbuser: wp
+        wordpress_dbpass: password
   lint:
     name: ansible-lint
 scenario:

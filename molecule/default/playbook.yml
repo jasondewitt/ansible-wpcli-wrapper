@@ -16,3 +16,10 @@
         path: "{{ wordpress_path }}"
         action: download
         version: "{{ wordpress_version }}"
+    - name: create wp-config.php
+      wpcli_config:
+        path: "{{ wordpress_path }}"
+        action: create
+        dbname: "{{ wordpress_dbname }}"
+        dbuser: "{{ wordpress_dbuser }}"
+        dbpass: "{{ wordpress_dbpass }}"

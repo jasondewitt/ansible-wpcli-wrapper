@@ -39,6 +39,9 @@ def wpcli_common_arg_spec():
 
     arg_spec = dict(
         path=dict(type='str',  required=True),
+        version=dict(type='str', required=False),
+        force=dict(type='str', required=False),
+        network=dict(type='str', required=False),
     )
 
     return arg_spec
@@ -50,6 +53,9 @@ class wpcli_command(object):
 
         self.module = module
         self.path = module.params["path"]
+        self.version = module.params["version"]
+        self.force = module.params["force"]
+        self.network = module.params["network"]
         self.result = {}
 
 

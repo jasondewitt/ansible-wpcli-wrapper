@@ -11,3 +11,24 @@
         name: php-cli
         state: installed
         enablerepo: remi-php72
+    - name: install mysql client
+      yum:
+        name: "{{ item }}"
+        state: installed
+      with_items:
+        - mysql
+        - mariadb-server
+    - name: start mysql
+      service:
+        name: mariadb
+        state: running
+    - name: create mysql database
+      mysql_db:
+        name: "{{ wordpress_dbname }}"
+        state: present
+    - name: create mysql user
+      mysql_user:
+        name: "{{ wordpress_dbuser }}"
+        state: present
+        password: "{{ wordpress_dbpass }}"
+        priv: 'wp.*:ALL'
