@@ -1,48 +1,33 @@
-Role Name
+ansible-wpcli-wrapper
 =========
 
-A brief description of the role goes here.
+WP-CLI is great for managing WordPress from the commandline, and it works resonably well in conjuction with Ansible whe using the shell or command modules. This role and moduleimplement an Ansible native interface for WP-CLI for use in your playbooks.
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should
-be mentioned here. For instance, if the role uses the EC2 module, it may be a
-good idea to mention in this section that the boto package is required.
+The module requires wp-cli and php to be installed the target host. The role includes a dependency on [mychiara.wp-cli](https://galaxy.ansible.com/mychiara/wp-cli/). I chose this role because it does not depend on a specific PHP role, I dont want this module/role to make any assumptions on how PHP is installed on the target servers, only rely on the fact that is there.
 
-Role Variables
+Module Description
+------------------
+
+WP-CLI functionality is broken up into several custom python modules in this role, closely mirrioring the [command structure](https://developer.wordpress.org/cli/commands/) of WP-CLI itself. The intention is to support all of the WP-CLI commands that make sense for running via Ansbile, and some commands may be combined into a single to better fit the Ansible workflow.
+
+Parameters
 --------------
-
-A description of the settable variables for this role should go here, including
-any variables that are in defaults/main.yml, vars/main.yml, and any variables
-that can/should be set via parameters to the role. Any variables that are read
-from other roles and/or the global scope (ie. hostvars, group vars, etc.) should
-be mentioned here as well.
-
-Dependencies
-------------
-
-A list of other roles hosted on Galaxy should go here, plus any details in
-regards to parameters that may need to be set for other roles, or variables that
-are used from other roles.
+Every sub-command that the modules support will require a `path:` parameter, this identifies the WordPress install on the target host to work on, and an `action:` paramter to determine which sub-command of the particular WP-CLI command is run. Each sub-module (core, config, plugin) will have it's own set of paramters and requirements.
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables
-passed in as parameters) is always nice for users too:
-
     - hosts: servers
       roles:
-         - { role: wpcli-wrapper, x: 42 }
+         - { role: wpcli-wrapper }
+      tasks:
+        - name: download WordPress
+          wpcli_core:
+            path: /var/www/wordpress
+            action: download
+            version: 4.9.5
 
-License
--------
 
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a
-website (HTML is not allowed).
