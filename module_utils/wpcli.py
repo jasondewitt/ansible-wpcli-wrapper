@@ -98,10 +98,10 @@ class wpcli_command(object):
     def find_wp_latest(self):
 
         try:
-            return [key for key in self.wp_versions.keys() if (self.wp_versions[key] == "latest")]
+            return [key for key in self.wp_versions.keys() if (self.wp_versions[key] == "latest")][0]
         except AttributeError:
             self.find_wp_versions()
-            return [key for key in self.wp_versions.keys() if (self.wp_versions[key] == "latest")]
+            return [key for key in self.wp_versions.keys() if (self.wp_versions[key] == "latest")][0]
 
 
     def get_wp_version(self):

@@ -117,7 +117,9 @@ class wpcli_core(wpcli_command):
 
         if current_version == latest or current_version == self.version:
             self.result["changed"] = False
-            self.result["msg"] = "WordPress at %s is already at version %s" % (self.path, self.version)
+            self.result["msg"] = "WordPress at %s is already at version %s" % (self.path, current_version)
+            self.result["latest"] = latest
+            self.result["current_version"] = current_version
             self.module.exit_json(**self.result)
 
         else:
@@ -139,6 +141,8 @@ class wpcli_core(wpcli_command):
                 # WordPress was already at this version
                 self.result["changed"] = False
                 self.result["stdout"] = out
+                self.result["latest"] = latest
+                self.result["current_version"] = current_version
                 self.module.exit_json(**self.result)
             elif rc == 0 and "WordPress updated successfully" in out:
                 self.result["changed"] = True
