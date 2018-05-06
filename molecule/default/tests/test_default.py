@@ -1,4 +1,5 @@
 import os
+#import subprocess
 
 import testinfra.utils.ansible_runner
 
@@ -32,9 +33,9 @@ def test_download_wordpress(host):
     assert wpload.exists
 
 
-def test_wordpress_version(host):
-    version = host.ansible.get_variables()["wordpress_version"]
-    path = host.ansible.get_variables()["wordpress_path"]
+# def test_wordpress_version(host):
+#     version = host.ansible.get_variables()["wordpress_version"]
+#     path = str(host.ansible.get_variables()["wordpress_path"])
 
-    print version
-    print path
+#     installed = subprocess.check_output("wp --allow-root core version --path=%s".split() % path).strip()  # noqa
+#     assert version == installed
