@@ -12,7 +12,7 @@
         owner: root
         group: root
     - name: download wordpress
-      wpcli:
+      wpcli_core:
         path: "{{ wordpress_path }}"
         action: download
         version: "{{ wordpress_version }}"
