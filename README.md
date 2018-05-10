@@ -22,7 +22,7 @@ Example Playbook
 
     - hosts: servers
       roles:
-         - { role: wpcli-wrapper }
+         - { role: ansible-wpcli-wrapper }
       tasks:
         - name: download WordPress
           wpcli_core:
