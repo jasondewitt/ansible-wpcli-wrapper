@@ -10,7 +10,6 @@ services:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -o Dpkg::Options::="--force-confold" --force-yes -y docker-ce
-  - sudo apt-get install tree
 
 install:
   - pip install docker
@@ -18,5 +17,4 @@ install:
 
 script:
   - echo script
-  - tree
-  - molecule --debug test
+  - molecule test
