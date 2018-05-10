@@ -17,4 +17,5 @@ install:
 
 script:
   - echo script
+  - tree
   - molecule test
