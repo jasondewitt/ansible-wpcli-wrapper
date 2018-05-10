@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jasondewitt/ansible-wpcli-wrapper.svg?branch=master)](https://travis-ci.org/jasondewitt/ansible-wpcli-wrapper)
+
 ansible-wpcli-wrapper
 =========
 
