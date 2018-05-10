@@ -8,7 +8,7 @@ lint:
 platforms:
   - name: instance
     image: centos/systemd
-    privileged: True
+    privileged: true
     command: "/usr/sbin/init"
 provisioner:
   name: ansible
