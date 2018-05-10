@@ -19,4 +19,4 @@ install:
 script:
   - echo script
   - tree
-  - molecule test
+  - molecule --debug test
