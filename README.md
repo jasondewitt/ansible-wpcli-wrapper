@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jasondewitt/ansible-wpcli-wrapper.svg?branch=master)](https://travis-ci.org/jasondewitt/ansible-wpcli-wrapper)
+
 ansible-wpcli-wrapper
 =========
 
@@ -22,7 +24,7 @@ Example Playbook
 
     - hosts: servers
       roles:
-         - { role: wpcli-wrapper }
+         - { role: ansible-wpcli-wrapper }
       tasks:
         - name: download WordPress
           wpcli_core:

@@ -11,13 +11,14 @@
         name: php-cli
         state: installed
         enablerepo: remi-php72
-    - name: install mysql client
+    - name: install needed packages
       yum:
         name: "{{ item }}"
         state: installed
       with_items:
         - mysql
         - mariadb-server
+        - MySQL-python
     - name: start mysql
       service:
         name: mariadb
