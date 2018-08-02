@@ -116,3 +116,15 @@ class wpcli_command(object):
             self.result["stderr"] = err
             self.result["stdout"] = out
             self.module.fail_json(**self.result)
+
+
+    def is_installed(self):
+        cmd = self.prep_command()
+        cmd.extend("core is-installed".split())
+
+        (rc, out, err) = self.execute_command(cmd)
+        if rc == 0:
+            return True
+        else:
+            return False
+

@@ -49,6 +49,7 @@ version - function is written in base class, needs refactor to use as both an an
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.wpcli import *
+import re
 
 class wpcli_core(wpcli_command):
 
@@ -61,6 +62,12 @@ class wpcli_core(wpcli_command):
         self.minor = module.params["minor"]
         self.force = module.params["force"]
         self.network = module.params["network"]
+        self.url = module.params["url"]
+        self.title = module.params["title"]
+        self.admin_user = module.params["admin_user"]
+        self.admin_password = module.params["admin_password"]
+        self.admin_email = module.params["admin_email"]
+        self.skip_email = module.params["skip_email"]
 
         # do i need this?
         self.result = {}
@@ -73,6 +80,7 @@ class wpcli_core(wpcli_command):
             "download": self.core_download,
             "verify": self.verify_checksums,
             "update": self.core_update,
+            "install": self.core_install
 
         }
 
@@ -154,6 +162,54 @@ class wpcli_core(wpcli_command):
                 self.module.fail_json(**self.result)
 
 
+    def core_install(self):
+        
+        if self.is_installed():
+            self.result["changed"] = False
+            self.result["msg"] = "WordPress at %s is already installed" % (self.path)
+            self.module.exit_json(**self.result)
+        else:
+            
+            if self.module.check_mode:
+                self.module.exit_json(changed=True)
+            
+            cmd = self.prep_command()
+            cmd.extend("core install".split())
+
+            # required params
+            cmd.append("--url=%s" % self.url)
+            cmd.append("--title=%s" % self.title)
+            cmd.append("--admin_user=%s" % self.admin_user)
+            cmd.append("--admin_email=%s" % self.admin_email)
+
+            if self.admin_password:
+                cmd.append("--admin_password=%s" % self.admin_password)
+            if self.skip_email:
+                cmd.append("--skip_email")
+
+            (rc, out, err) = self.execute_command(cmd)
+
+            if "Parameter Error" in out:
+                self.result["stderr"] = err
+                self.result["msg"] = "Parameter error!"
+                self.result["command"] = cmd
+                self.module.fail_json(**self.result)
+            elif rc != 0:
+                self.result["stderr"] = err
+                self.result["msg"] = "Error installing WordPress, check generated wp-cli command"
+                self.result["command"] = cmd
+                self.module.fail_json(**self.result)
+            elif rc == 0 and self.is_installed():
+                if not self.skip_email and not self.admin_password:
+                    m = re.match("^Admin password:\s(.+)\n", out)
+                    if m:
+                        self.result["admin_password"] = m.group(1)
+                self.result["stdout"] = "WordPress sucessfully installed"
+                self.result["changed"] = True
+                self.module.exit_json(**self.result)
+
+
+
     def verify_checksums(self):
 
         cmd = self.prep_command()
@@ -192,17 +248,27 @@ def main():
                 "download",
                 "install",
                 "update",
-                "verify"
+                "verify",
+                "install"
             ]),
             version=dict(type="str", required=False, default=None),
             force=dict(type="bool", required=False, default=False),
             network=dict(type="bool", required=False, default=False),
             minor=dict(type="bool", required=False, default=False),
+            url=dict(type="str", required=False, default=None),
+            title=dict(type="str", required=False, default=None),
+            admin_user=dict(type="str", required=False, default=None),
+            admin_password=dict(type="str", required=False, default=None, no_log=True),
+            admin_email=dict(type="str", required=False, default=None),
+            skip_email=dict(type="bool", required=False, default=False)
         )
     )
 
     module = AnsibleModule(
         argument_spec = arg_spec,
+        required_if=[
+            [ "action", "install", [ "url", "title", "admin_user", "admin_email" ] ]
+        ],
         mutually_exclusive=[
             [ 'version', 'minor' ]
         ],
@@ -213,6 +279,9 @@ def main():
 
     if wp.minor and wp.action != "update":
         module.fail_json(fail=True, msg="Only use \"Minor: True\" on Update action")
+
+    if (wp.url or wp.title or wp.admin_user or wp.admin_password or wp.admin_email or wp.skip_email) and wp.action != "install":
+        module.fail_json(fail=True, msg="Extraneous options for %s" % wp.action)
 
     wp.do_action()
 
